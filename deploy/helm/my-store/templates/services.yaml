@@ -1,0 +1,56 @@
+{{- range $name, $config := .Values.services }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $name }}
+  labels:
+    app: {{ $name }}
+    {{- include "my-store.labels" $ | nindent 4 }}
+spec:
+  replicas: {{ $config.replicas | default 1 }}
+  selector:
+    matchLabels:
+      app: {{ $name }}
+  template:
+    metadata:
+      labels:
+        app: {{ $name }}
+    spec:
+      containers:
+        - name: {{ $name }}
+          image: "{{ $config.image.repository }}:{{ $config.image.tag }}"
+          imagePullPolicy: {{ $config.image.pullPolicy }}
+          ports:
+            - containerPort: {{ $config.port }}
+          {{- if $config.env }}
+          env:
+            {{- range $key, $val := $config.env }}
+            - name: {{ $key }}
+              value: "{{ $val }}"
+            {{- end }}
+            # Inject Secrets if this is a database-dependent service
+            {{- if or (eq $name "auth") (eq $name "order") (eq $name "shipping") }}
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: my-store-secrets
+                  key: postgres-password
+            {{- end }}
+          {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $name }}
+  labels:
+    app: {{ $name }}
+    {{- include "my-store.labels" $ | nindent 4 }}
+spec:
+  type: {{ $config.type | default "ClusterIP" }}
+  selector:
+    app: {{ $name }}
+  ports:
+    - port: {{ $config.port }}
+      targetPort: {{ $config.port }}
+{{- end }}

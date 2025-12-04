@@ -9,6 +9,9 @@ docker_build('analytics-service', './', dockerfile='services/analytics/Dockerfil
 docker_build('bff-service', './', dockerfile='services/bff/Dockerfile')
 docker_build('frontend', './', dockerfile='frontend/Dockerfile')
 
+# Apply local secrets (manually managed, not in Helm)
+k8s_yaml('local-secrets.yaml')
+
 # Deploy using Helm
 k8s_yaml(helm(
     './deploy/helm/my-store',

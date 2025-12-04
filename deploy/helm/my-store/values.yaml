@@ -1,0 +1,100 @@
+# Default values for my-store.
+
+global:
+  environment: dev
+
+# Services Configuration
+services:
+  auth:
+    image:
+      repository: auth-service
+      tag: latest
+      pullPolicy: Never
+    port: 50051
+    replicas: 1
+    env:
+      POSTGRES_HOST: postgres
+      POSTGRES_USER: user
+      POSTGRES_DB: auth_db
+      # Password injected from secret
+
+  order:
+    image:
+      repository: order-service
+      tag: latest
+      pullPolicy: Never
+    port: 50052
+    replicas: 1
+    env:
+      POSTGRES_HOST: postgres
+      POSTGRES_USER: user
+      POSTGRES_DB: order_db
+
+  shipping:
+    image:
+      repository: shipping-service
+      tag: latest
+      pullPolicy: Never
+    port: 50053
+    replicas: 1
+    env:
+      POSTGRES_HOST: postgres
+      POSTGRES_USER: user
+      POSTGRES_DB: shipping_db
+
+  notification:
+    image:
+      repository: notification-service
+      tag: latest
+      pullPolicy: Never
+    port: 50054
+    replicas: 1
+    env:
+      KAFKA_BROKERS: kafka:9092
+
+  analytics:
+    image:
+      repository: analytics-service
+      tag: latest
+      pullPolicy: Never
+    port: 50055
+    replicas: 1
+    env:
+      KAFKA_BROKERS: kafka:9092
+
+  bff:
+    image:
+      repository: bff-service
+      tag: latest
+      pullPolicy: Never
+    port: 8080
+    replicas: 1
+    type: LoadBalancer
+    env:
+      AUTH_SERVICE_ADDR: auth:50051
+      ORDER_SERVICE_ADDR: order:50051
+      SHIPPING_SERVICE_ADDR: shipping:50053
+
+  frontend:
+    image:
+      repository: frontend
+      tag: latest
+      pullPolicy: Never
+    port: 80
+    replicas: 1
+    type: LoadBalancer
+
+# Infrastructure
+postgres:
+  enabled: true
+  image: postgres:15-alpine
+  storage: 1Gi
+
+pgadmin:
+  enabled: true
+  image: dpage/pgadmin4
+
+kafka:
+  enabled: true
+  image: apache/kafka:latest
+  zookeeperImage: zookeeper

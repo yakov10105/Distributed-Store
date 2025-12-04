@@ -14,3 +14,4 @@ Tiltfile
 skaffold.yaml
 README.md
 PRD.md
+local-secrets.yaml

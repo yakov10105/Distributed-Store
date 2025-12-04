@@ -1,0 +1,33 @@
+# Binaries
+bin/
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Logs
+*.log
+
+# Vendor
+node_modules/
+dist/
+vendor/
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Secrets
+local-secrets.yaml
+*.env
+secrets/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+main
+

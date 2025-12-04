@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+package shipping;
+
+option go_package = "github.com/my-store/pkg/api/shipping";
+
+service ShippingService {
+  rpc CreateShipment (CreateShipmentRequest) returns (CreateShipmentResponse) {}
+  rpc GetShipmentStatus (GetShipmentStatusRequest) returns (GetShipmentStatusResponse) {}
+}
+
+message CreateShipmentRequest {
+  int64 order_id = 1;
+  string address = 2;
+}
+
+message CreateShipmentResponse {
+  int32 status = 1;
+  string error = 2;
+  string tracking_id = 3;
+}
+
+message GetShipmentStatusRequest {
+  string tracking_id = 1;
+}
+
+message GetShipmentStatusResponse {
+  int32 status = 1;
+  string error = 2;
+  string status_text = 3;
+}
+

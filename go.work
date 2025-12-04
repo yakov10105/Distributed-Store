@@ -1,0 +1,11 @@
+go 1.25.4
+
+use (
+	./pkg
+	./services/analytics
+	./services/auth
+	./services/bff
+	./services/notification
+	./services/order
+	./services/shipping
+)
