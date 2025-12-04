@@ -1,28 +1,85 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
 	"log"
 	"net"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
+
+	pb "github.com/my-store/pkg/api/auth"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
 )
 
 func main() {
+	// 1. Connect to Database
+	dbHost := os.Getenv("POSTGRES_HOST")
+	dbUser := os.Getenv("POSTGRES_USER")
+	dbPass := os.Getenv("POSTGRES_PASSWORD")
+	dbName := os.Getenv("POSTGRES_DB")
+
+	if dbHost == "" {
+		dbHost = "localhost" // Fallback for local dev outside docker
+	}
+
+	// Connection string for pgx
+	dsn := fmt.Sprintf("postgres://%s:%s@%s:5432/%s?sslmode=disable", dbUser, dbPass, dbHost, dbName)
+	
+	var db *sql.DB
+	var err error
+
+	// Retry logic for DB connection (wait for Postgres to start)
+	for i := 0; i < 10; i++ {
+		db, err = sql.Open("pgx", dsn)
+		if err == nil {
+			err = db.Ping()
+			if err == nil {
+				log.Println("Connected to database")
+				break
+			}
+		}
+		log.Printf("Waiting for database... (%d/10)", i+1)
+		time.Sleep(2 * time.Second)
+	}
+	if err != nil {
+		log.Fatalf("Failed to connect to database: %v", err)
+	}
+	defer db.Close()
+
+	// 2. Initialize Store & Schema
+	store := NewUserStore(db)
+	if err := store.InitSchema(); err != nil {
+		log.Fatalf("Failed to run migrations: %v", err)
+	}
+
+	// 3. Start gRPC Server
 	port := 50051
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
-	log.Printf("Auth Service listening on port %d", port)
 	
-	// gRPC server setup will go here once protos are generated
-	// s := grpc.NewServer()
-	// pb.RegisterAuthServiceServer(s, &server{})
-	
-	// if err := s.Serve(lis); err != nil {
-	// 	log.Fatalf("failed to serve: %v", err)
-	// }
-	
-	// Keep alive for now
-	select {}
-}
+	s := grpc.NewServer()
+	authServer := NewAuthServer(store)
+	pb.RegisterAuthServiceServer(s, authServer)
+	reflection.Register(s)
 
+	log.Printf("Auth Service listening on port %d", port)
+
+	go func() {
+		if err := s.Serve(lis); err != nil {
+			log.Fatalf("failed to serve: %v", err)
+		}
+	}()
+
+	// 4. Graceful Shutdown
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+	log.Println("Shutting down server...")
+	s.GracefulStop()
+}

@@ -1,0 +1,16 @@
+.git
+.gitignore
+.idea
+.vscode
+**/node_modules
+**/dist
+**/bin
+**/*.exe
+**/*.log
+.DS_Store
+manifests/
+deploy/
+Tiltfile
+skaffold.yaml
+README.md
+PRD.md
